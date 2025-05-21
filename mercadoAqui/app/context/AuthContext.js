@@ -37,8 +37,14 @@ export const AuthProvider = ({ children }) => {
     await AsyncStorage.removeItem('token');
   };
 
+  const atualizarUsuario = async (novoUsuario) => {
+  setUsuario(novoUsuario);
+  await AsyncStorage.setItem('usuario', JSON.stringify(novoUsuario));
+};
+
+
   return (
-    <AuthContext.Provider value={{ usuario, token, login, logout, loading }}>
+    <AuthContext.Provider value={{ usuario, token, login, logout, atualizarUsuario, loading }}> 
       {children}
     </AuthContext.Provider>
   );

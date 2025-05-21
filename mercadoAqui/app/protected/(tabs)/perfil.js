@@ -1,4 +1,3 @@
-
 import { View, Text, Button, StyleSheet, Modal, TextInput, TouchableOpacity, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState, useEffect } from 'react';
@@ -6,7 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 
 export default function Perfil() {
   const router = useRouter();
-  const { usuario, logout } = useAuth();
+  const { usuario, logout, atualizarUsuario } = useAuth();
 
   const [modalVisible, setModalVisible] = useState(false);
   const [modalSairVisible, setModalSairVisible] = useState(false);
@@ -22,14 +21,30 @@ export default function Perfil() {
     }
   }, [usuario]);
 
-  const salvarEdicao = () => {
-    if (!editNome.trim() || !editEmail.trim()) {
-      Alert.alert("Erro", "Nome e e-mail não podem estar vazios.");
+  const salvarEdicao = async () => {
+    if (!editNome.trim()) {
+      Alert.alert("Erro", "O nome não pode estar vazio.");
       return;
     }
 
-    Alert.alert("Sucesso", "Dados atualizados (apenas visual).");
-    setModalVisible(false);
+    try {
+      const response = await fetch(`http://localhost:3000/auth/atualizar`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: usuario.id, nome: editNome })
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        Alert.alert("Sucesso", "Nome atualizado com sucesso.");
+        setModalVisible(false);
+        await atualizarUsuario({ ...usuario, nome: editNome });
+      } else {
+        Alert.alert("Erro", data.message || "Erro ao atualizar.");
+      }
+    } catch (err) {
+      Alert.alert("Erro", "Erro ao conectar com o servidor.");
+    }
   };
 
   return (
@@ -83,6 +98,7 @@ export default function Perfil() {
               value={editEmail}
               onChangeText={setEditEmail}
               autoCapitalize="none"
+              editable={false}
             />
 
             <View style={styles.modalButtons}>
@@ -136,11 +152,23 @@ export default function Perfil() {
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.saveBtn, { backgroundColor: '#d32f2f' }]}
-                onPress={() => {
-                  setModalExcluirVisible(false);
-                  Alert.alert("Conta excluída", "Sua conta foi excluída com sucesso.");
-                  logout();
-                  router.replace('/auth/login');
+                onPress={async () => {
+                  try {
+                    const response = await fetch(`http://localhost:3000/auth/excluir/${usuario.id}`, {
+                      method: 'DELETE'
+                    });
+
+                    const data = await response.json();
+                    if (response.ok) {
+                      Alert.alert("Conta excluída", data.message);
+                      logout();
+                      router.replace('/auth/login');
+                    } else {
+                      Alert.alert("Erro", data.message || "Erro ao excluir.");
+                    }
+                  } catch (err) {
+                    Alert.alert("Erro", "Erro ao conectar com o servidor.");
+                  }
                 }}
               >
                 <Text style={styles.saveText}>Excluir</Text>

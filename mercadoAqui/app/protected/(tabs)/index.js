@@ -1,60 +1,86 @@
-import { View, Text, TextInput, ScrollView, Image, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import { View, Text, TextInput, ScrollView, Image, StyleSheet, TouchableOpacity, Animated, findNodeHandle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRef } from 'react';
-import { useRouter } from 'expo-router'; // ✅ Importa o roteador
+import { useRef, useEffect, useState } from 'react';
+import { useRouter } from 'expo-router';
 
 export default function Home() {
   const fadeAnim = useRef(new Animated.Value(1)).current;
-  const router = useRouter(); // ✅ Instancia o roteador
+  const router = useRouter();
+  const scrollViewRef = useRef(null);
 
-  const handleCategoriaClick = () => {
-    Animated.sequence([
-      Animated.timing(fadeAnim, {
-        toValue: 0.3,
-        duration: 150,
-        useNativeDriver: true
-      }),
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 150,
-        useNativeDriver: true
-      })
-    ]).start();
+  const [produtos, setProdutos] = useState([]);
+
+  const refs = {
+    Mercearia: useRef(null),
+    Laticínios: useRef(null),
+    Bebidas: useRef(null),
+    Higiene: useRef(null),
+    Limpeza: useRef(null),
   };
+
+  useEffect(() => {
+    fetch('http://localhost:3000/produtos/com-precos')
+      .then(res => res.json())
+      .then(data => {
+        console.log('📦 Produtos recebidos:', data);
+        setProdutos(Array.isArray(data) ? data : []);
+      })
+      .catch(err => console.error('Erro ao buscar produtos:', err));
+  }, []);
+
+  const handleCategoriaClick = (categoria) => {
+    Animated.sequence([
+      Animated.timing(fadeAnim, { toValue: 0.3, duration: 150, useNativeDriver: true }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 150, useNativeDriver: true })
+    ]).start();
+
+    const node = findNodeHandle(refs[categoria]?.current);
+    if (node && scrollViewRef.current) {
+      refs[categoria].current.measureLayout(scrollViewRef.current, (_x, y) => {
+        scrollViewRef.current.scrollTo({ y, animated: true });
+      });
+    }
+  };
+
+  const produtosPorCategoria = (cat) => produtos.filter(p => p.categoria === cat);
+  const ofertas = produtos.slice(0, 8).map(p => ({ ...p, desconto: 10 + Math.floor(Math.random() * 6) }));
+
+const renderProdutos = (lista) => lista.map((item, index) => (
+  <View key={index} style={styles.productCard}>
+    <Text style={styles.productName}>{item.nome}</Text>
+    <Text style={styles.price}>R$ {item.preco?.toFixed(2) ?? '--'}</Text>
+    <Text style={{ fontSize: 12, color: '#444' }}>Tipo: {item.tipo || '-'}</Text>
+    <Text style={{ fontSize: 12, color: '#444' }}>Categoria: {item.categoria || '-'}</Text>
+    <Text style={{ fontSize: 12, color: '#888' }}>Mercado: {item.mercado || '-'}</Text>
+    {item.desconto && (
+      <Text style={styles.discount}>-{item.desconto}% OFF</Text>
+    )}
+  </View>
+));
+
 
   return (
     <View style={styles.wrapper}>
-      <ScrollView style={styles.container}>
-        {/* Header */}
+      <ScrollView style={styles.container} ref={scrollViewRef}>
         <View style={styles.header}>
           <Text style={styles.logo}>
             <Text style={{ color: '#007BFF', fontWeight: '900' }}>Mercado</Text><Text style={{ fontWeight: '900' }}>Aqui</Text>
           </Text>
         </View>
 
-        {/* Search */}
         <View style={styles.searchContainer}>
           <Ionicons name="search-outline" size={20} color="gray" />
           <TextInput placeholder="Pesquisar" style={styles.searchInput} />
         </View>
 
-        {/* Banner */}
-        <View style={styles.banner}>
-          <Image
-            source={{ uri: 'https://sdmntprwestus.oaiusercontent.com/files/00000000-a67c-6230-a1cf-3fc70cedf6b2/raw?se=2025-05-19T22%3A39%3A03Z&sp=r&sv=2024-08-04&sr=b&scid=00000000-0000-0000-0000-000000000000&skoid=02b7f7b5-29f8-416a-aeb6-99464748559d&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2025-05-19T18%3A38%3A11Z&ske=2025-05-20T18%3A38%3A11Z&sks=b&skv=2024-08-04&sig=q4meTI7ousj3JwAtERBBCoxMITW3lqaZCwb0seYUJ6c%3D' }}
-            style={{ width: '100%', height: 100, borderRadius: 10 }}
-          />
-        </View>
-
-        {/* Categorias */}
         <View style={{ marginTop: 12 }}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Categorias</Text>
             <Text style={styles.sectionLink}>Ver mais</Text>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
-            {['Mercearia', 'Padaria', 'Bebidas', 'Hortifruti', 'Frios'].map((cat, index) => (
-              <TouchableOpacity key={index} onPress={handleCategoriaClick}>
+            {Object.keys(refs).map((cat, index) => (
+              <TouchableOpacity key={index} onPress={() => handleCategoriaClick(cat)}>
                 <Animated.View style={[styles.categoryItem, { opacity: fadeAnim }]}>
                   <Ionicons name="leaf-outline" size={24} color="white" />
                   <Text style={styles.categoryText}>{cat}</Text>
@@ -64,65 +90,17 @@ export default function Home() {
           </ScrollView>
         </View>
 
-        {/* Ofertas */}
         <Text style={styles.sectionTitle}>Ofertas</Text>
-        <View style={styles.offerGrid}>
-          {[{
-            nome: 'Arroz Tio Urbano Tipo 5kg',
-            preco: '31,49',
-            precoAntigo: '44,99',
-            desconto: '10%',
-            imagem: 'https://static.paodeacucar.com/img/uploads/1/51/659051.jpg'
-          },
-          {
-            nome: 'Leite UHT Piracanjuba 1L',
-            preco: '7,49',
-            precoAntigo: '9,99',
-            desconto: '15%',
-            imagem: 'https://static.paodeacucar.com/img/uploads/1/986/32854986.png'
-          },
-          {
-            nome: 'Óleo de Soja Liza 900ml',
-            preco: '5,99',
-            precoAntigo: '7,99',
-            desconto: '25%',
-            imagem: 'https://static.paodeacucar.com/img/uploads/1/922/32852922.png'
-          },
-          {
-            nome: 'Feijão Carioca Namorado 1kg',
-            preco: '6,89',
-            precoAntigo: '8,49',
-            desconto: '20%',
-            imagem: 'https://static.paodeacucar.com/img/uploads/1/922/32852922.png'
-          },
-          {
-            nome: 'Macarrão Espaguete Renata 500g',
-            preco: '3,49',
-            precoAntigo: '4,99',
-            desconto: '30%',
-            imagem: 'https://static.paodeacucar.com/img/uploads/1/522/32848522.png'
-          },
-          {
-            nome: 'Refrigerante Coca-Cola 2L',
-            preco: '8,99',
-            precoAntigo: '10,99',
-            desconto: '18%',
-            imagem: 'https://static.paodeacucar.com/img/uploads/1/522/32848522.png'
-          }].map((item, index) => (
-            <View key={index} style={styles.productCard}>
-              <Image source={{ uri: item.imagem }} style={styles.productImage} />
-              <Text style={styles.price}>R$ {item.preco}</Text>
-              <View style={styles.discountRow}>
-                <Text style={styles.discount}>-{item.desconto}</Text>
-                <Text style={styles.oldPrice}>R$ {item.precoAntigo}</Text>
-              </View>
-              <Text style={styles.productName}>{item.nome}</Text>
-            </View>
-          ))}
-        </View>
+        <View style={styles.offerGrid}>{renderProdutos(ofertas)}</View>
+
+        {Object.keys(refs).map((cat, idx) => (
+          <View key={idx} ref={refs[cat]}>
+            <Text style={styles.sectionTitle}>{cat}</Text>
+            <View style={styles.offerGrid}>{renderProdutos(produtosPorCategoria(cat))}</View>
+          </View>
+        ))}
       </ScrollView>
 
-      {/* ✅ Botão flutuante redireciona para /lista */}
       <TouchableOpacity style={styles.fab} onPress={() => router.push('/protected/(tabs)/lista')}>
         <Ionicons name="add-circle" size={56} color="#007BFF" />
       </TouchableOpacity>
@@ -141,13 +119,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10, marginBottom: 20
   },
   searchInput: { marginLeft: 8, flex: 1, height: 40 },
-  banner: { marginBottom: 20 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   sectionTitle: { fontSize: 16, fontWeight: '600', marginBottom: 12 },
   sectionLink: { fontSize: 14, color: '#007BFF' },
   categoryScroll: { marginBottom: 24 },
   categoryItem: {
-    width: 80, height: 80, backgroundColor: '#007BFF',
+    width: 100, height: 80, backgroundColor: '#007BFF',
     borderRadius: 10, padding: 10,
     alignItems: 'center', justifyContent: 'center',
     marginRight: 12
@@ -160,9 +137,7 @@ const styles = StyleSheet.create({
   },
   productImage: { width: '100%', height: 100, resizeMode: 'contain', marginBottom: 8 },
   price: { fontWeight: 'bold', fontSize: 16 },
-  discountRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
-  discount: { color: 'green', fontWeight: 'bold', marginRight: 6 },
-  oldPrice: { textDecorationLine: 'line-through', color: '#888' },
+  discount: { color: 'green', fontWeight: 'bold', marginBottom: 4 },
   productName: { fontSize: 12, color: '#333' },
   fab: {
     position: 'absolute',
