@@ -17,7 +17,7 @@ import ModalConfirmacao from '../components/ModalConfirmacao';
 
 export default function Login() {
   const router = useRouter();
-  const { setIsLoggedIn } = useAuth();
+  const { login } = useAuth();
 
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
@@ -30,7 +30,7 @@ export default function Login() {
   const [emailRecuperacao, setEmailRecuperacao] = useState('');
   const [modalConfirmacaoVisivel, setModalConfirmacaoVisivel] = useState(false);
 
-    const handleLogin = async () => {
+  const handleLogin = async () => {
     const camposInvalidos = {
       email: email.trim() === '',
       senha: senha.trim() === ''
@@ -56,14 +56,13 @@ export default function Login() {
       console.log('🔁 RESPOSTA COMPLETA:', data);
 
       if (response.ok && data.token && data.usuario) {
-        setIsLoggedIn(true);
-        Alert.alert('Sucesso', 'Login realizado com sucesso!');
         await login(data.usuario, data.token);
-        router.replace('/protected');
+        router.push('/protected');
       } else {
         setMensagemErro(data.message || 'Credenciais inválidas.');
       }
     } catch (error) {
+      console.error('❌ Erro no login:', error);
       setMensagemErro('Erro ao conectar com o servidor.');
     } finally {
       setCarregando(false);
@@ -165,55 +164,7 @@ export default function Login() {
           Ainda não tem conta? Cadastre-se
         </Text>
       </TouchableOpacity>
-      {/* Modal de recuperação */}
-      <Modal
-        visible={modalVisivel}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setModalVisivel(false)}
-      >
-        <View style={{
-          flex: 1,
-          justifyContent: 'center',
-          backgroundColor: 'rgba(0,0,0,0.4)',
-          padding: 20
-        }}>
-          <View style={{
-            backgroundColor: 'white',
-            borderRadius: 12,
-            padding: 24
-          }}>
-            <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 12, color: '#007BFF', textAlign: 'center' }}>
-              Recuperar senha
-            </Text>
-            <Text style={{ fontSize: 14, marginBottom: 12, textAlign: 'center' }}>
-              Digite seu e-mail para receber instruções de redefinição.
-            </Text>
 
-            <TextInput
-              placeholder="Seu e-mail"
-              value={emailRecuperacao}
-              onChangeText={setEmailRecuperacao}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              style={{
-                borderWidth: 1,
-                borderColor: '#ccc',
-                borderRadius: 8,
-                marginBottom: 16,
-                padding: 10
-              }}
-            />
-
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Button title="Cancelar" color="#888" onPress={() => setModalVisivel(false)} />
-              <Button title="Enviar" color="#007BFF" onPress={enviarRecuperacao} />
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Modal de confirmação reutilizável */}
       <ModalConfirmacao
         visivel={modalConfirmacaoVisivel}
         mensagem="Verifique seu e-mail!"

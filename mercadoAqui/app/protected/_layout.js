@@ -1,30 +1,20 @@
-import { Slot, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { Slot, Redirect } from 'expo-router';
 import { useAuth } from '../context/AuthContext';
 import { View, ActivityIndicator } from 'react-native';
 
 export default function ProtectedLayout() {
-  const router = useRouter();
-  const { isLoggedIn } = useAuth();
-  const [ready, setReady] = useState(false);
+  const { usuario, loading } = useAuth();
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (!isLoggedIn) {
-        router.replace('/auth/login');
-      }
-      setReady(true);
-    }, 100); // pequeno delay evita o erro
-
-    return () => clearTimeout(timer);
-  }, [isLoggedIn]);
-
-  if (!ready) {
+  if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" />
       </View>
     );
+  }
+
+  if (!usuario) {
+    return <Redirect href="/auth/login" />;
   }
 
   return <Slot />;

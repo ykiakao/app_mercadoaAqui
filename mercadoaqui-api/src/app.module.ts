@@ -22,7 +22,8 @@ import { Usuario } from './modules/usuarios/usuario.entity';
       password: process.env.DB_PASS,
       database: process.env.DB_NAME,
       entities: [Usuario],
-      synchronize: false, // true só em desenvolvimento
+      logging: true,
+      synchronize: true, // true só em desenvolvimento
     }),
 
     // Módulo JWT global
